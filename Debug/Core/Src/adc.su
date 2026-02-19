@@ -1,5 +1,0 @@
-../Core/Src/adc.c:10:6:init_ADC	8	static
-../Core/Src/adc.c:18:10:read_ADC_Channel	16	static
-../Core/Src/adc.c:26:7:ADC_to_Temperature	24	static
-../Core/Src/adc.c:32:7:ADC_to_BatteryVoltage	24	static
-../Core/Src/adc.c:38:7:ADC_to_Current	24	static
