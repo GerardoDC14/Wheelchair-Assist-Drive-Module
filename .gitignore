@@ -1,0 +1,24 @@
+# STM32CubeIDE
+Debug/
+Release/
+
+# Eclipse / CubeIDE workspace files
+.settings/
+*.launch
+
+# Build artifacts
+*.elf
+*.hex
+*.bin
+*.map
+*.list
+*.o
+*.d
+*.su
+*.cyclo
+*.mk
+objects.list
+
+# OS/editor
+Thumbs.db
+.DS_Store
