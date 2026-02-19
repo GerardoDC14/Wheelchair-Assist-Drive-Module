@@ -1,12 +1,12 @@
-# STM32CubeIDE
-Debug/
-Release/
+# STM32CubeIDE generated build folders
+/Debug/
+/Release/
 
-# Eclipse / CubeIDE workspace files
-.settings/
+# STM32CubeIDE local workspace metadata
+/.settings/
 *.launch
 
-# Build artifacts
+# Firmware build artifacts
 *.elf
 *.hex
 *.bin
@@ -16,8 +16,6 @@ Release/
 *.d
 *.su
 *.cyclo
-*.mk
-objects.list
 
 # OS/editor
 Thumbs.db

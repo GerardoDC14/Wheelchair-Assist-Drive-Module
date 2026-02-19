@@ -4,7 +4,7 @@
 #include "mpu6050.h"
 #include "fonts.h"
 #include "ssd1306.h"
-#include "BitMapTec.h"
+#include "bitmap_tec.h"
 #include "adc.h"
 #include "display.h"
 #include "utilities.h"
