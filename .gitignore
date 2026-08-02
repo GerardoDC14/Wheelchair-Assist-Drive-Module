@@ -4,6 +4,7 @@
 
 # STM32CubeIDE local workspace metadata
 /.settings/
+/.metadata/
 *.launch
 
 # Firmware build artifacts
@@ -16,7 +17,21 @@
 *.d
 *.su
 *.cyclo
+*.gcda
+*.gcno
 
-# OS/editor
+# Local editor and temporary files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# Python utility cache
+__pycache__/
+*.py[cod]
+
+# OS noise
 Thumbs.db
 .DS_Store

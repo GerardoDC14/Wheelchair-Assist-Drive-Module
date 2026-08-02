@@ -1,87 +1,168 @@
-# 5th Wheel - Wheelchair Assistance System
+<h1 align="center">Wheelchair Assist Drive Module</h1>
 
-A mechatronics semester project focused on a supplementary **5th wheel** for a wheelchair, powered by a brushless motor and controlled by an STM32F0 platform.
+<p align="center">
+  <strong>STM32-based mechatronic fifth-wheel system for powered wheelchair mobility assistance.</strong>
+</p>
 
-## Quick Navigation
-- Build/flash guide: `docs/BUILD.md`
-- Firmware architecture: `docs/ARCHITECTURE.md`
-- CubeMX configuration: `FifthWheel_4.ioc`
-- Linker script: `STM32F051R8TX_FLASH.ld`
+<p align="center">
+  <img src="https://img.shields.io/badge/MCU-STM32F051-03234B?style=flat-square&logo=stmicroelectronics&logoColor=white" alt="STM32F051" />
+  <img src="https://img.shields.io/badge/firmware-C-A8B9CC?style=flat-square&logo=c&logoColor=white" alt="C firmware" />
+  <img src="https://img.shields.io/badge/control-PWM%20%2B%20encoder-2F80ED?style=flat-square" alt="PWM and encoder control" />
+  <img src="https://img.shields.io/badge/sensing-IMU%20%2B%20power%20telemetry-7B61FF?style=flat-square" alt="IMU and power telemetry" />
+  <img src="https://img.shields.io/badge/status-functional%20prototype-lightgrey?style=flat-square" alt="Functional prototype" />
+</p>
 
-## Project Overview
-A constant challenge in technology and automation is designing integrated mechatronic systems that are reliable, responsive, and practical. This project addresses that challenge by implementing a mobility-assist wheel module for wheelchairs.
+## Overview
 
-## Requirements
-![fw1](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/c327ff9d-fa48-490c-ad37-0654b138b9e4)
+This repository documents a complete embedded mechatronic prototype that adds a powered fifth wheel to a manual wheelchair. The system combines mechanical design, power conversion, brushless-motor actuation, encoder-based speed estimation, inertial sensing, analog power monitoring and an onboard OLED interface around an STM32F051 controller.
 
-## Solution
-The system combines:
-- Brushless DC motor actuation.
-- Rotary-encoder-based speed control.
-- Sensor-assisted steering/orientation feedback.
-- OLED runtime telemetry.
+Although it originated as an academic project, it is presented here as an integrated engineering system rather than a collection of isolated exercises. The technical scope spans requirements, electronics, firmware, control logic, sensing, operator feedback and physical prototyping.
 
-![fw2](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/32165e3b-c78e-42e4-8f03-f944379d6138)
+## Engineering highlights
 
-## Block Diagram
-![image](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/36439088-edaf-432a-93c4-470f54049488)
+- direct STM32 register configuration combined with STM32 HAL services;
+- high-frequency TIM1 PWM generation for the motor-control interface;
+- TIM2 input capture and interrupt-driven pulse counting;
+- RPM estimation with a moving-average filter;
+- rotary-encoder manual setpoint adjustment with bounded PWM output;
+- automatic assist-mode transition after operator inactivity;
+- experimentally fitted quadratic conversion from desired RPM to PWM;
+- MPU6050 inertial sensing with Kalman-filtered inclination angles;
+- ADC conversion for temperature, battery voltage and motor current;
+- SSD1306 OLED telemetry, startup graphics and audible feedback;
+- 48 V traction supply with staged conversion for control electronics;
+- custom aluminum and acrylic mechanical integration.
 
-The STM32F0Discovery handles PWM generation, pulse counting, ADC sensing, and I2C communication.
+## System architecture
 
-Power path:
-- 48V battery for motor/controller stage.
-- Step-down conversion: 48V -> 12V.
-- Step-down conversion: 12V -> logic-level supply for MCU/electronics.
+```mermaid
+flowchart LR
+    B[48 V battery] --> D[BLDC drive stage]
+    B --> P1[48 V to 12 V converter]
+    P1 --> P2[Logic supply]
+    P2 --> M[STM32F051 controller]
 
-## Mechanical Elements
-![image](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/916a852a-03e1-4da3-b7b4-406fd9321c66)
+    E[Wheel encoder] -->|TIM2 capture| M
+    R[Rotary encoder] -->|EXTI input| M
+    I[MPU6050 IMU] -->|I2C| M
+    A[Temperature / voltage / current] -->|ADC| M
 
-The structure uses two 1/4-inch aluminum plates with spacers for rigidity, plus acrylic side covers for component protection.
+    M -->|TIM1 PWM| D
+    D --> W[Powered fifth wheel]
+    M -->|I2C| O[SSD1306 OLED]
+    M --> Z[Buzzer]
+```
 
-## Control System Development
-### Flowchart
-![image](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/69b865aa-6c43-4b1e-8efa-d1b823a7f296)
+## Control concept
 
-### PWM Control
-Motor speed is controlled by PWM duty cycle.
-- `TIM1` is configured as PWM output.
-- `ARR = 79` sets period scaling.
-- `CCR2` controls duty cycle.
-- Encoder input and automatic logic update target PWM.
+The firmware supports two operating behaviors:
 
-### Speed Reading
-Speed is estimated by pulse counting over fixed windows and converted to RPM.
-- Timer capture interrupt counts pulses.
-- RPM is derived using pulses-per-revolution.
+1. **Manual adjustment** — the rotary encoder changes a bounded PWM target. Direction changes are decoded from the encoder state sequence in the EXTI handler.
+2. **Automatic assist prototype** — after two seconds without rotary-encoder input, the controller estimates current wheel RPM and calculates a new PWM target using the fitted motor-response model.
 
-## Sensor Variables (ADC)
-### Temperature
-LM35 output is converted from ADC code to degrees Celsius.
+The current implementation is a prototype assist strategy, not a medical-device controller. It does not include redundant sensing, certified braking, fault-tolerant actuation or clinical safety validation.
 
-### Battery Voltage
-A divider scales battery voltage to an ADC-safe range; firmware reconstructs real battery voltage.
+See [`docs/CONTROL_SYSTEM.md`](docs/CONTROL_SYSTEM.md) for equations, timing and limitations.
 
-### Current
-ACS712 output is converted to amperes using offset and sensitivity calibration.
+## Hardware and software stack
 
-## Communication Protocol
-### I2C
-I2C is used for short-distance peripheral communication.
-- I2C1 initialized in firmware (`MX_I2C1_Init()`).
-- SDA/SCL on PB7/PB6.
-- MPU6050 and SSD1306 communicate over I2C.
+| Layer | Implementation |
+|---|---|
+| Main controller | STM32F051R8Tx, 8 MHz system clock |
+| Motor interface | TIM1 channel 2 PWM, bounded compare value |
+| Speed feedback | Wheel pulses through TIM2 input capture |
+| Operator input | Quadrature rotary encoder through EXTI |
+| Inertial sensing | MPU6050 over I2C, Kalman angle estimates |
+| Analog telemetry | LM35 temperature, battery divider, ACS712 current sensing |
+| Local display | SSD1306 128×64 OLED over I2C |
+| Mechanical structure | Aluminum plates, spacers and acrylic covers |
+| Development environment | STM32CubeIDE and STM32Cube FW_F0 |
 
-## Electronic Design
-![image](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/0cdebcdc-aa42-4db5-8a88-6bbd0dc48da6)
+## Visual documentation
 
-![image](https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/6f9fdb4e-eb84-4556-9b52-72bee884d385)
+<table>
+  <tr>
+    <td width="50%">
+      <img src="https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/36439088-edaf-432a-93c4-470f54049488" alt="System block diagram" />
+      <br /><sub>System-level electronics and control block diagram.</sub>
+    </td>
+    <td width="50%">
+      <img src="https://github.com/GerardoDC14/5thWheel_5thSemester/assets/123440177/916a852a-03e1-4da3-b7b4-406fd9321c66" alt="Mechanical fifth-wheel assembly" />
+      <br /><sub>Mechanical integration of the powered fifth-wheel module.</sub>
+    </td>
+  </tr>
+</table>
 
-## Prototype
+Additional diagrams and prototype evidence remain embedded in the repository history and linked documentation.
+
+## Firmware organization
+
+```text
+.
+├── Core/
+│   ├── Inc/                     # Application and peripheral headers
+│   ├── Src/
+│   │   ├── main.c               # Control loop, timers, modes and telemetry
+│   │   ├── adc.c                # Analog acquisition and engineering units
+│   │   ├── mpu6050.c            # IMU acquisition and Kalman filtering
+│   │   ├── display.c            # Runtime OLED presentation
+│   │   ├── ssd1306.c            # OLED driver
+│   │   └── utilities.c          # Buzzer and support utilities
+│   └── Startup/                 # STM32 startup code
+├── Drivers/                     # CMSIS and STM32 HAL dependencies
+├── docs/                        # Architecture, control, build and validation
+├── tools/                       # Repository-quality checks
+├── FifthWheel_4.ioc             # STM32CubeMX source configuration
+└── STM32F051R8TX_FLASH.ld       # Linker script
+```
+
+## Build and flash
+
+Required baseline:
+
+- STM32CubeIDE 1.13 or compatible;
+- STM32Cube FW_F0 V1.11.x;
+- ST-LINK-compatible programmer;
+- STM32F051R8Tx target.
+
+```text
+File → Import → Existing Projects into Workspace
+Select the repository root
+Build the Debug configuration
+Run or Debug through ST-LINK
+```
+
+Detailed instructions are available in [`docs/BUILD.md`](docs/BUILD.md).
+
+## Repository quality checks
+
+The repository includes a dependency-free structural validation gate:
+
+```bash
+python3 tools/repository_health.py
+```
+
+It validates the CubeMX manifest, expected firmware modules, documentation and absence of generated build outputs. GitHub Actions runs the same check on pushes and pull requests.
+
+This static check does not replace compilation in STM32CubeIDE or testing on the physical module.
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — hardware and firmware boundaries
+- [`docs/CONTROL_SYSTEM.md`](docs/CONTROL_SYSTEM.md) — control logic and signal processing
+- [`docs/BUILD.md`](docs/BUILD.md) — toolchain, import, build and flashing
+- [`docs/VALIDATION.md`](docs/VALIDATION.md) — evidence, test matrix and limitations
+- [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) — maturity and recommended future work
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — change and validation expectations
+
+## Prototype demonstration
+
+A historical prototype video is available through the original project link:
+
 https://drive.google.com/file/d/1q5f74_9eyorfq265GyVNEVVHl1ltfvB8/view?usp=sharing
 
-## Repository Structure
-- `Core/Inc`: firmware headers.
-- `Core/Src`: application and peripheral source code.
-- `Core/Startup`: startup assembly.
-- `Drivers`: STM32 HAL + CMSIS libraries.
-- `docs`: build and architecture documentation.
+## Project status
+
+**Functional historical prototype maintained as a mechatronics portfolio reference.**
+
+The repository preserves the original firmware and engineering evidence while adding modern documentation and repository-quality infrastructure. It should not be interpreted as a certified mobility or medical device.
